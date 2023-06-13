@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"allowJs": true,
+		"baseUrl": "./src",
+		"emitDecoratorMetadata": true,
+		"esModuleInterop": true,
+		"experimentalDecorators": true,
+		"lib": ["dom", "es6"],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"outDir": "dist",
+		"paths": {
+			"@/*": ["./*"]
+		},
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"target": "esnext"
+	},
+	"exclude": ["node_modules", "src/**/*.test.ts"],
+	"include": ["src/**/*.ts"],
+	"ts-node": {
+		"require": ["tsconfig-paths/register"]
+	}
+}

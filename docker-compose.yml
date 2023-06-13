@@ -1,15 +1,34 @@
-x-pg-creds: &pg-creds
-  POSTGRES_DB: experiment-db
+x-express-db-creds: &express-db-creds
+  POSTGRES_DB: express-db
   POSTGRES_PASSWORD: password
   POSTGRES_PORT: 5432
   POSTGRES_USER: user
 
 version: '3.9'
 services:
-  sql-db:
+  express-db:
     image: postgres
     environment:
-      <<: *pg-creds
+      <<: *express-db-creds
       PG_DATA: /var/lib/postgresql/data
+    ports:
+      - 5432:5432
     volumes:
       - ./local/postgres:/var/lib/postgresql/data
+
+  express-app:
+    image: node
+    build:
+      context: .
+      dockerfile: dockerfile
+      target: express-build
+    depends_on:
+      - express-db
+    environment:
+      <<: *express-db-creds
+      DB_HOST: express-db
+      EXPRESS_APP_PORT: 25000
+    ports:
+      - 25000:25000
+    volumes:
+      - ./src:/app/src
