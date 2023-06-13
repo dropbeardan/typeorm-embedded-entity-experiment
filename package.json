@@ -1,0 +1,9 @@
+{
+  "packageManager": "yarn@1.22.19",
+  "name": "typeorm-embedded-entity-experiment",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:dropbeardan/typeorm-embedded-entity-experiment.git",
+  "author": "dropbeardan <dan.ess.001@gmail.com>",
+  "license": "MIT"
+}

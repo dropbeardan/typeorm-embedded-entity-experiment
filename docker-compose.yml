@@ -1,0 +1,15 @@
+x-pg-creds: &pg-creds
+  POSTGRES_DB: experiment-db
+  POSTGRES_PASSWORD: password
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: user
+
+version: '3.9'
+services:
+  sql-db:
+    image: postgres
+    environment:
+      <<: *pg-creds
+      PG_DATA: /var/lib/postgresql/data
+    volumes:
+      - ./local/postgres:/var/lib/postgresql/data

@@ -1,0 +1,5 @@
+# LOCAL
+local/**/*
+
+# PACKAGES
+node_modules
