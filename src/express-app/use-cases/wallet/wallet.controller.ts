@@ -9,29 +9,40 @@ export const addMoney = async (req: Request, res: Response) => {
 	try {
 		const walletRepository = WalletRepository.getRepository();
 
-		const wallet = await walletRepository.findOne({
-			where: {
-				id: req.params.walletId,
-			},
-			relations: {
-				moneys: true,
-			},
-		});
+		const outcome = await walletRepository.manager.transaction(
+			async (transWalletRepository) => {
+				const wallet = await transWalletRepository.findOne(WalletEntity, {
+					where: {
+						id: req.params.walletId,
+					},
+					relations: {
+						moneys: true,
+					},
+				});
 
-		if (!wallet) {
-			throw new Error('Invalid wallet ID.');
-		}
+				if (!wallet) {
+					throw new Error('Invalid wallet ID.');
+				}
 
-		await sleep(15000);
+				if (req.body.delay) {
+					await sleep(req.body.delay * 1000);
+				}
 
-		const { money, wallet: happyWallet } = wallet.addMoney({
-			amount: req.body.amount,
-			type: req.body.type,
-		});
+				const { money, wallet: happyWallet } = wallet.addMoney({
+					amount: req.body.amount,
+					type: req.body.type,
+				});
 
-		const persistedWallet = await walletRepository.save(happyWallet);
+				const persistedWallet = await transWalletRepository.save(happyWallet);
 
-		res.json({ money, wallet: persistedWallet });
+				return {
+					money,
+					persistedWallet,
+				};
+			}
+		);
+
+		res.json({ money: outcome.money, wallet: outcome.persistedWallet });
 	} catch (err) {
 		res.status(400).json({ error: err.message });
 	}
@@ -55,28 +66,39 @@ export const spendMoney = async (req: Request, res: Response) => {
 	try {
 		const walletRepository = WalletRepository.getRepository();
 
-		const wallet = await walletRepository.findOne({
-			where: {
-				id: req.params.walletId,
-			},
-			relations: {
-				moneys: true,
-			},
-		});
+		const outcome = await walletRepository.manager.transaction(
+			async (transWalletRepository) => {
+				const wallet = await transWalletRepository.findOne(WalletEntity, {
+					where: {
+						id: req.params.walletId,
+					},
+					relations: {
+						moneys: true,
+					},
+				});
 
-		if (!wallet) {
-			throw new Error('Invalid wallet ID.');
-		}
+				if (!wallet) {
+					throw new Error('Invalid wallet ID.');
+				}
 
-		await sleep(15000);
+				if (req.body.delay) {
+					await sleep(req.body.delay * 1000);
+				}
 
-		const { spent, wallet: sadWallet } = wallet.spendMoney({
-			amount: req.body.amount,
-		});
+				const { spent, wallet: sadWallet } = wallet.spendMoney({
+					amount: req.body.amount,
+				});
 
-		const persistedWallet = await walletRepository.save(sadWallet);
+				const persistedWallet = await transWalletRepository.save(sadWallet);
 
-		res.json({ spent, wallet: persistedWallet });
+				return {
+					spent,
+					persistedWallet,
+				};
+			}
+		);
+
+		res.json({ spent: outcome.spent, wallet: outcome.persistedWallet });
 	} catch (err) {
 		res.status(400).json({ error: err.message });
 	}
