@@ -10,6 +10,7 @@ export const addMoney = async (req: Request, res: Response) => {
 		const walletRepository = WalletRepository.getRepository();
 
 		const outcome = await walletRepository.manager.transaction(
+			'SERIALIZABLE',
 			async (transWalletRepository) => {
 				const wallet = await transWalletRepository.findOne(WalletEntity, {
 					where: {
@@ -67,6 +68,7 @@ export const spendMoney = async (req: Request, res: Response) => {
 		const walletRepository = WalletRepository.getRepository();
 
 		const outcome = await walletRepository.manager.transaction(
+			'SERIALIZABLE',
 			async (transWalletRepository) => {
 				const wallet = await transWalletRepository.findOne(WalletEntity, {
 					where: {
