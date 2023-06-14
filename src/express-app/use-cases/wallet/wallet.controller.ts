@@ -1,3 +1,4 @@
+import asyncRetry from 'async-retry';
 import type { Request, Response } from 'express';
 
 import WalletEntity from '@/express-app/infra/db/entities/wallet.entity';
@@ -7,43 +8,55 @@ import { sleep } from '@/express-app/utils/sleep';
 
 export const addMoney = async (req: Request, res: Response) => {
 	try {
-		const walletRepository = WalletRepository.getRepository();
+		await asyncRetry(
+			async (bail) => {
+				const walletRepository = WalletRepository.getRepository();
 
-		const outcome = await walletRepository.manager.transaction(
-			'SERIALIZABLE',
-			async (transWalletRepository) => {
-				const wallet = await transWalletRepository.findOne(WalletEntity, {
-					where: {
-						id: req.params.walletId,
-					},
-					relations: {
-						moneys: true,
-					},
-				});
+				const outcome = await walletRepository.manager.transaction(
+					'SERIALIZABLE',
+					async (transWalletRepository) => {
+						const wallet = await transWalletRepository.findOne(WalletEntity, {
+							where: {
+								id: req.params.walletId,
+							},
+							relations: {
+								moneys: true,
+							},
+						});
 
-				if (!wallet) {
-					throw new Error('Invalid wallet ID.');
-				}
+						if (!wallet) {
+							bail(new Error('Invalid wallet ID.'));
+						}
 
-				if (req.body.delay) {
-					await sleep(req.body.delay * 1000);
-				}
+						if (req.body.delay) {
+							await sleep(req.body.delay * 1000);
+						}
 
-				const { money, wallet: happyWallet } = wallet.addMoney({
-					amount: req.body.amount,
-					type: req.body.type,
-				});
+						const { money, wallet: happyWallet } = wallet.addMoney({
+							amount: req.body.amount,
+							type: req.body.type,
+						});
 
-				const persistedWallet = await transWalletRepository.save(happyWallet);
+						const persistedWallet = await transWalletRepository.save(
+							happyWallet
+						);
 
-				return {
-					money,
-					persistedWallet,
-				};
+						return {
+							money,
+							persistedWallet,
+						};
+					}
+				);
+
+				res.json({ money: outcome.money, wallet: outcome.persistedWallet });
+			},
+			{
+				factor: 2,
+				minTimeout: 500,
+				maxTimeout: 5000,
+				retries: 5,
 			}
 		);
-
-		res.json({ money: outcome.money, wallet: outcome.persistedWallet });
 	} catch (err) {
 		res.status(400).json({ error: err.message });
 	}
@@ -65,42 +78,52 @@ export const createWallet = async (req: Request, res: Response) => {
 
 export const spendMoney = async (req: Request, res: Response) => {
 	try {
-		const walletRepository = WalletRepository.getRepository();
+		await asyncRetry(
+			async (bail) => {
+				const walletRepository = WalletRepository.getRepository();
 
-		const outcome = await walletRepository.manager.transaction(
-			'SERIALIZABLE',
-			async (transWalletRepository) => {
-				const wallet = await transWalletRepository.findOne(WalletEntity, {
-					where: {
-						id: req.params.walletId,
-					},
-					relations: {
-						moneys: true,
-					},
-				});
+				const outcome = await walletRepository.manager.transaction(
+					'SERIALIZABLE',
+					async (transWalletRepository) => {
+						const wallet = await transWalletRepository.findOne(WalletEntity, {
+							where: {
+								id: req.params.walletId,
+							},
+							relations: {
+								moneys: true,
+							},
+						});
 
-				if (!wallet) {
-					throw new Error('Invalid wallet ID.');
-				}
+						if (!wallet) {
+							throw new Error('Invalid wallet ID.');
+						}
 
-				if (req.body.delay) {
-					await sleep(req.body.delay * 1000);
-				}
+						if (req.body.delay) {
+							await sleep(req.body.delay * 1000);
+						}
 
-				const { spent, wallet: sadWallet } = wallet.spendMoney({
-					amount: req.body.amount,
-				});
+						const { spent, wallet: sadWallet } = wallet.spendMoney({
+							amount: req.body.amount,
+						});
 
-				const persistedWallet = await transWalletRepository.save(sadWallet);
+						const persistedWallet = await transWalletRepository.save(sadWallet);
 
-				return {
-					spent,
-					persistedWallet,
-				};
+						return {
+							spent,
+							persistedWallet,
+						};
+					}
+				);
+
+				res.json({ spent: outcome.spent, wallet: outcome.persistedWallet });
+			},
+			{
+				factor: 2,
+				minTimeout: 500,
+				maxTimeout: 5000,
+				retries: 5,
 			}
 		);
-
-		res.json({ spent: outcome.spent, wallet: outcome.persistedWallet });
 	} catch (err) {
 		res.status(400).json({ error: err.message });
 	}
